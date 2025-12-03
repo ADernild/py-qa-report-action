@@ -8,7 +8,7 @@
     "check": "biome check --write src/",
     "check:ci": "biome ci src/",
     "package": "ncc build -o dist src/index.ts",
-    "all": "npm run build && npm run format && npm run lint && npm run package",
+    "all": "npm run build && npm run check && npm run package",
     "all:ci": "npm ci && npm run build && npm run check:ci && npm run package"
   },
   "keywords": [
