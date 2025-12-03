@@ -69,3 +69,5 @@ jobs:
           pytest-results: pytest-report.json
           bandit-results: bandit-report.json
           ruff-results: ruff-report.json
+          fail-on-errors: true
+          update-comment: true
