@@ -21,10 +21,10 @@ function parseRuffData(data: any): RuffData {
     filesWithIssues.add(issue.filename || "");
 
     issuesByCode[code].instances.push({
+      endLocation: issue.end_location || { column: 0, row: 0 },
       fileName: issue.filename || "",
       fix: issue.fix || null,
       location: issue.location || { column: 0, row: 0 },
-      endLocation: issue.end_location || { column: 0, row: 0 },
       message: issue.message || "",
       url: issue.url || undefined,
     });

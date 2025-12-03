@@ -1,4 +1,4 @@
-import type { ParsedData, BanditIssue } from "./types";
+import type { BanditIssue, ParsedData } from "./types";
 
 export function generateMarkdownReport(data: ParsedData): string {
   const sections: string[] = [];
@@ -38,8 +38,7 @@ function generateSummaryTable(data: ParsedData): string {
   }
 
   if (data.ruff) {
-    const status =
-      data.ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
+    const status = data.ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
     const details = `${data.ruff.totalIssues} linting issue${data.ruff.totalIssues !== 1 ? "s" : ""}`;
     rows.push(`| ruff | ${status} | ${details} |`);
   }
@@ -111,7 +110,7 @@ function formatBanditIssues(
   if (issues.length === 0) return [];
 
   const lines: string[] = [];
-  const icons = { HIGH: "🔴", MEDIUM: "🟡", LOW: "🟢" };
+  const icons = { HIGH: "🔴", LOW: "🟢", MEDIUM: "🟡" };
 
   lines.push(
     `### ${icons[severity]} ${severity.charAt(0) + severity.slice(1).toLowerCase()} Severity Issues\n`,
