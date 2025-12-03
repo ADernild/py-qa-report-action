@@ -52,12 +52,70 @@ jobs:
           cat > ruff-report.json << 'EOF'
           [
             {
-              "code": "F401",
-              "filename": "src/main.py",
-              "location": {"row": 5, "column": 8},
-              "end_location": {"row": 5, "column": 20},
-              "message": "Module `os` imported but unused",
-              "url": "https://docs.astral.sh/ruff/rules/unused-import"
+              "cell": null,
+              "code": "SIM102",
+              "end_location": {
+                "column": 27,
+                "row": 4
+              },
+              "filename": "/Users/aid/repos/DevOps/api-clients/violation.py",
+              "fix": {
+                "applicability": "unsafe",
+                "edits": [
+                  {
+                    "content": "    if arg and len(arg) > 1:\n        if arg[0] > 5:\n            return arg",
+                    "end_location": {
+                      "column": 27,
+                      "row": 5
+                    },
+                    "location": {
+                      "column": 1,
+                      "row": 2
+                    }
+                  }
+                ],
+                "message": "Combine `if` statements using `and`"
+              },
+              "location": {
+                "column": 5,
+                "row": 2
+              },
+              "message": "Use a single `if` statement instead of nested `if` statements",
+              "noqa_row": 2,
+              "url": "https://docs.astral.sh/ruff/rules/collapsible-if"
+            },
+            {
+              "cell": null,
+              "code": "SIM102",
+              "end_location": {
+                "column": 27,
+                "row": 4
+              },
+              "filename": "/Users/aid/repos/DevOps/api-clients/violation.py",
+              "fix": {
+                "applicability": "unsafe",
+                "edits": [
+                  {
+                    "content": "        if len(arg) > 1 and arg[0] > 5:\n            return arg",
+                    "end_location": {
+                      "column": 27,
+                      "row": 5
+                    },
+                    "location": {
+                      "column": 1,
+                      "row": 3
+                    }
+                  }
+                ],
+                "message": "Combine `if` statements using `and`"
+              },
+              "location": {
+                "column": 9,
+                "row": 3
+              },
+              "message": "Use a single `if` statement instead of nested `if` statements",
+              "noqa_row": 3,
+              "url": "https://docs.astral.sh/ruff/rules/collapsible-if"
             }
           ]
           EOF
