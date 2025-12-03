@@ -1,0 +1,71 @@
+name: Test Action
+
+on:
+  pull_request:
+    branches: [main, test]
+
+jobs:
+  test-action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create dummy test reports
+        run: |
+          cat > pytest-report.json << 'EOF'
+          {
+            "summary": {"total": 10, "passed": 7, "failed": 2, "skipped": 1, "error": 0},
+            "duration": 3.45,
+            "tests": [
+              {
+                "nodeid": "tests/test_example.py::test_addition",
+                "outcome": "failed",
+                "call": {"longrepr": "AssertionError: Expected 4 but got 5"}
+              }
+            ]
+          }
+          EOF
+
+          cat > bandit-report.json << 'EOF'
+          {
+            "metrics": {"_totals": {"loc": 500}},
+            "results": [
+              {
+                "code": "10     subprocess.run([\"ls\", \"-la\"], check=True)\n",
+                "filename": "src/example.py",
+                "issue_confidence": "HIGH",
+                "issue_severity": "MEDIUM",
+                "issue_text": "subprocess call - check for execution of untrusted input.",
+                "line_number": 10,
+                "line_range": [10],
+                "test_id": "B603",
+                "test_name": "subprocess_without_shell_equals_true"
+              }
+            ]
+          }
+          EOF
+
+          cat > ruff-report.json << 'EOF'
+          [
+            {
+              "code": "F401",
+              "filename": "src/main.py",
+              "location": {"row": 5, "column": 8},
+              "end_location": {"row": 5, "column": 20},
+              "message": "Module `os` imported but unused",
+              "url": "https://docs.astral.sh/ruff/rules/unused-import"
+            }
+          ]
+          EOF
+
+      - name: Test Action
+        uses: ./
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pytest-results: pytest-report.json
+          bandit-results: bandit-report.json
+          ruff-results: ruff-report.json
