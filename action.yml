@@ -1,0 +1,51 @@
+name: "Python QA Report"
+description: "Parse pytest, bandit, and ruff outputs and post a summary comment on pull requests"
+author: "ADernild"
+
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  github-token:
+    description: "GitHub token for posting comments"
+    required: true
+    default: ${{ github.token }}
+  pytest-results:
+    description: "Path to pytest JSON results file"
+    required: false
+    default: ""
+  bandit-results:
+    description: "Path to bandit JSON results file"
+    required: false
+    default: ""
+  ruff-results:
+    description: "Path to ruff JSON results file"
+    required: false
+    default: ""
+  fail-on-errors:
+    description: "Fail the action if any errors are found"
+    required: false
+    default: "false"
+  update-comment:
+    description: "Update existing comment instead of creating new ones"
+    required: false
+    default: "true"
+
+outputs:
+  comment-id:
+    description: "ID of the comment that was created or updated"
+  has-errors:
+    description: "Whether any errors were found"
+  pytest-passed:
+    description: "Number of pytest tests that passed"
+  pytest-failed:
+    description: "Number of pytest tests that failed"
+  bandit-issues:
+    description: "Number of bandit security issues found"
+  ruff-issues:
+    description: "Number of ruff linting issues found"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"
