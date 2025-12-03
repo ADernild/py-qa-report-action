@@ -38,8 +38,7 @@ function generateSummaryTable(data: ParsedData): string {
   }
 
   if (data.ruff) {
-    const status =
-      data.ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
+    const status = data.ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
     const details = `${data.ruff.totalIssues} linting issue${data.ruff.totalIssues !== 1 ? "s" : ""}`;
     rows.push(`| ruff | ${status} | ${details} |`);
   }
