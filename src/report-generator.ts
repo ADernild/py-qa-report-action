@@ -38,7 +38,8 @@ function generateSummaryTable(data: ParsedData): string {
   }
 
   if (data.ruff) {
-    const status = data.ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
+    const status =
+      data.ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
     const details = `${data.ruff.totalIssues} linting issue${data.ruff.totalIssues !== 1 ? "s" : ""}`;
     rows.push(`| ruff | ${status} | ${details} |`);
   }
@@ -176,7 +177,7 @@ function generateRuffSection(ruff: ParsedData["ruff"]): string {
   lines.push(`- **Files Affected**: ${ruff.filesAffected}\n`);
 
   if (Object.keys(ruff.issuesByCode).length > 0) {
-    lines.push("### Top Issues by Type\n");
+    lines.push("### Issues by Type\n");
 
     const sortedIssues = Object.entries(ruff.issuesByCode)
       .sort((a, b) => b[1].count - a[1].count)
@@ -184,12 +185,33 @@ function generateRuffSection(ruff: ParsedData["ruff"]): string {
 
     for (const [code, info] of sortedIssues) {
       const occurrences = `${info.count} occurrence${info.count !== 1 ? "s" : ""}`;
-
       const url = info.instances[0]?.url;
       const codeLink = url ? `[${code}](${url})` : `**${code}**`;
-      lines.push(`- ${codeLink} (${occurrences}): ${info.message}`);
+
+      lines.push(`#### ${codeLink} (${occurrences})`);
+      lines.push(`${info.message}\n`);
+
+      // Show up to 3 instances with file locations
+      const maxInstances = 3;
+      const instancesToShow = info.instances.slice(0, maxInstances);
+
+      for (const instance of instancesToShow) {
+        const startRow = instance.location.row;
+        const endRow = instance.endLocation.row;
+        const lineRange =
+          startRow === endRow ? `${startRow}` : `${startRow}-${endRow}`;
+
+        lines.push(`- \`${instance.fileName}:${lineRange}\``);
+      }
+
+      if (info.instances.length > maxInstances) {
+        lines.push(
+          `- _...and ${info.instances.length - maxInstances} more instance${info.instances.length - maxInstances !== 1 ? "s" : ""}_`,
+        );
+      }
+
+      lines.push("");
     }
-    lines.push("");
   }
 
   return lines.join("\n");
