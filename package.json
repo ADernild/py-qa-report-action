@@ -1,0 +1,42 @@
+{
+  "name": "py-qa-report-action",
+  "version": "1.0.0",
+  "description": "GitHub Action to parse pytest, bandit, and ruff results and post a summary comment on pull requests",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "check": "biome check --write src/",
+    "check:ci": "biome ci src/",
+    "package": "ncc build -o dist src/index.ts",
+    "all": "npm run build && npm run format && npm run lint && npm run package",
+    "all:ci": "npm ci && npm run build && npm run check:ci && npm run package"
+  },
+  "keywords": [
+    "actions",
+    "pytest",
+    "bandit",
+    "ruff",
+    "code-quality",
+    "linting",
+    "security",
+    "python",
+    "testing"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ADernild/python-quality-report.git"
+  },
+  "author": "@ADernild",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.8",
+    "@types/node": "^24.10.1",
+    "@vercel/ncc": "^0.38.4",
+    "typescript": "^5.9.3"
+  }
+}
