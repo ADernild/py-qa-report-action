@@ -16,6 +16,8 @@ export interface BanditIssue {
   testName: string;
   fileName: string;
   lineNumber: number;
+  lineRange: number[];
+  code: string;
   issueText: string;
   confidence: string;
 }
@@ -59,7 +61,12 @@ export interface RuffIssue {
     row: number;
     column: number;
   };
+  endLocation: {
+    row: number;
+    column: number;
+  };
   message: string;
+  url?: string;
   fix?: RuffFix;
 }
 
