@@ -107,7 +107,7 @@ export function getRuffStatus(ruff: ParsedData["ruff"]): {
   if (!ruff) return { details: "", status: "" };
 
   const status = ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
-  const details = `${ruff.totalIssues} linting issue${pluralize(ruff.totalIssues, "issue")}`;
+  const details = `${ruff.totalIssues} linting ${pluralize(ruff.totalIssues, "issue")}`;
 
   return { details, status };
 }
