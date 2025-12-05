@@ -30156,7 +30156,7 @@ function getRuffStatus(ruff) {
     if (!ruff)
         return { details: "", status: "" };
     const status = ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
-    const details = `${ruff.totalIssues} linting issue${(0, utils_1.pluralize)(ruff.totalIssues, "issue")}`;
+    const details = `${ruff.totalIssues} linting ${(0, utils_1.pluralize)(ruff.totalIssues, "issue")}`;
     return { details, status };
 }
 
