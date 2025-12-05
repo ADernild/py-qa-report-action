@@ -1,6 +1,30 @@
 import type { Context } from "@actions/github/lib/context";
-import type { ParsedData } from "../types";
-import { createGitHubFileLink } from "../utils";
+import type { ParsedData, RuffIssue } from "../types";
+import { createGitHubFileLink, pluralize } from "../utils";
+
+function formatFixInfo(issue: RuffIssue): string[] {
+  if (!issue.fix) return [];
+
+  const lines: string[] = [];
+  const applicabilityIcon = issue.fix.applicability === "safe" ? "✅" : "⚠️";
+
+  lines.push(
+    `  - ${applicabilityIcon} **Fix available** (${issue.fix.applicability})`,
+  );
+
+  if (issue.fix.message) {
+    lines.push(`    - ${issue.fix.message}`);
+  }
+
+  if (issue.fix.edits && issue.fix.edits.length > 0) {
+    const edit = issue.fix.edits[0];
+    lines.push("    ```python");
+    lines.push(edit.content);
+    lines.push("    ```");
+  }
+
+  return lines;
+}
 
 export function generateRuffSection(
   ruff: ParsedData["ruff"],
@@ -14,6 +38,14 @@ export function generateRuffSection(
   lines.push(`- **Total Issues**: ${ruff.totalIssues}`);
   lines.push(`- **Files Affected**: ${ruff.filesAffected}\n`);
 
+  if (ruff.fixableCount > 0) {
+    lines.push(
+      `- **Auto-fixable**: 🔧 ${ruff.fixableCount} ${pluralize(ruff.fixableCount, "issue")}`,
+    );
+  }
+
+  lines.push("");
+
   if (Object.keys(ruff.issuesByCode).length > 0) {
     lines.push("### Issues by Type\n");
 
@@ -22,12 +54,16 @@ export function generateRuffSection(
       .slice(0, 5);
 
     for (const [code, info] of sortedIssues) {
-      const pluralS = info.count !== 1 ? "s" : "";
-      const occurrences = `${info.count} occurrence${pluralS}`;
+      const occurrences = `${info.count} ${pluralize(info.count, "occurrence")}`;
       const url = info.instances[0]?.url;
       const codeLink = url ? `[${code}](${url})` : `**${code}**`;
 
-      lines.push(`#### ${codeLink} (${occurrences})`);
+      const safeFixableInCode = info.instances.filter(
+        (i: RuffIssue) => i.fix && i.fix.applicability === "safe",
+      ).length;
+      const fixableNote =
+        safeFixableInCode > 0 ? ` - ${safeFixableInCode} fixable` : "";
+      lines.push(`#### ${codeLink} (${occurrences}${fixableNote})`);
       lines.push(`${info.message}\n`);
 
       // Show up to 3 instances with file locations
@@ -45,12 +81,16 @@ export function generateRuffSection(
           context,
         );
         lines.push(`- ${fileLink}`);
+
+        const fixInfo = formatFixInfo(instance);
+        lines.push(...fixInfo);
       }
 
       if (info.instances.length > maxInstances) {
         const remaining = info.instances.length - maxInstances;
-        const pluralS = remaining !== 1 ? "s" : "";
-        lines.push(`- _...and ${remaining} more instance${pluralS}_`);
+        lines.push(
+          `- _...and ${remaining} more instance${pluralize(remaining, "instance")}_`,
+        );
       }
 
       lines.push("");
@@ -67,8 +107,7 @@ export function getRuffStatus(ruff: ParsedData["ruff"]): {
   if (!ruff) return { details: "", status: "" };
 
   const status = ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
-  const pluralS = ruff.totalIssues !== 1 ? "s" : "";
-  const details = `${ruff.totalIssues} linting issue${pluralS}`;
+  const details = `${ruff.totalIssues} linting issue${pluralize(ruff.totalIssues, "issue")}`;
 
   return { details, status };
 }

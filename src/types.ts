@@ -68,6 +68,7 @@ export interface RuffIssue {
   message: string;
   url?: string;
   fix?: RuffFix;
+  noqa_row?: number;
 }
 
 export interface RuffIssueGroup {
@@ -80,6 +81,7 @@ export interface RuffData {
   totalIssues: number;
   filesAffected: number;
   issuesByCode: Record<string, RuffIssueGroup>;
+  fixableCount: number;
 }
 
 export interface ParsedData {
