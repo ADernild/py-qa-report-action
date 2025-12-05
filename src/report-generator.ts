@@ -19,8 +19,8 @@ export function generateMarkdownReport(
   sections.push("# 🔍 Code Quality Report\n");
   sections.push(generateSummaryTable(data));
   sections.push(generatePytestSection(data.pytest));
-  sections.push(generateBanditSection(data.bandit, context));
   sections.push(generateRuffSection(data.ruff, context));
-
+  sections.push(generateBanditSection(data.bandit, context));
+  
   return sections.join("\n");
 }
