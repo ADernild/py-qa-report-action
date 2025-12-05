@@ -43,11 +43,11 @@ export function getPytestStatus(pytest: ParsedData["pytest"]): {
   status: string;
   details: string;
 } {
-  if (!pytest) return { status: "", details: "" };
+  if (!pytest) return { details: "", status: "" };
 
   const status =
     pytest.failed === 0 && pytest.errors === 0 ? "✅ PASSED" : "❌ FAILED";
   const details = `${pytest.passed}/${pytest.total} passed`;
 
-  return { status, details };
+  return { details, status };
 }

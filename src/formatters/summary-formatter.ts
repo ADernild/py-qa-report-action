@@ -1,6 +1,6 @@
 import type { ParsedData } from "../types";
-import { getPytestStatus } from "./pytest-formatter";
 import { getBanditStatus } from "./bandit-formatter";
+import { getPytestStatus } from "./pytest-formatter";
 import { getRuffStatus } from "./ruff-formatter";
 
 export function generateSummaryTable(data: ParsedData): string {

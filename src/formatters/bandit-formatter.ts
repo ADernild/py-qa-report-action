@@ -4,8 +4,8 @@ import { createGitHubFileLink, formatLineRange } from "../utils";
 
 const SEVERITY_ICONS = {
   HIGH: "🔴",
-  MEDIUM: "🟡",
   LOW: "🟢",
+  MEDIUM: "🟡",
 } as const;
 
 function formatBanditIssues(
@@ -88,7 +88,7 @@ export function getBanditStatus(bandit: ParsedData["bandit"]): {
   status: string;
   details: string;
 } {
-  if (!bandit) return { status: "", details: "" };
+  if (!bandit) return { details: "", status: "" };
 
   const highIssues = bandit.severityCounts.HIGH;
   const mediumIssues = bandit.severityCounts.MEDIUM;
@@ -97,5 +97,5 @@ export function getBanditStatus(bandit: ParsedData["bandit"]): {
   const pluralS = bandit.totalIssues !== 1 ? "s" : "";
   const details = `${bandit.totalIssues} security issue${pluralS}`;
 
-  return { status, details };
+  return { details, status };
 }

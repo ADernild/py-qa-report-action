@@ -64,11 +64,11 @@ export function getRuffStatus(ruff: ParsedData["ruff"]): {
   status: string;
   details: string;
 } {
-  if (!ruff) return { status: "", details: "" };
+  if (!ruff) return { details: "", status: "" };
 
   const status = ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
   const pluralS = ruff.totalIssues !== 1 ? "s" : "";
   const details = `${ruff.totalIssues} linting issue${pluralS}`;
 
-  return { status, details };
+  return { details, status };
 }

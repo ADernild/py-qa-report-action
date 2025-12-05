@@ -17,7 +17,7 @@ export function getRelativePath(fileName: string, context: Context): string {
     const workDirPattern = new RegExp(`/work/${repoName}/${repoName}/(.+)$`);
     const match = cleanPath.match(workDirPattern);
 
-    if (match && match[1]) {
+    if (match?.[1]) {
       cleanPath = match[1];
     } else {
       // Fallback: try to find any occurrence of /repo-name/ and take what's after
