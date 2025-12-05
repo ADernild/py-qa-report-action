@@ -34,7 +34,7 @@ async function run(): Promise<void> {
     });
 
     // Generate markdown report
-    const markdownReport = generateMarkdownReport(parsedData);
+    const markdownReport = generateMarkdownReport(parsedData, context);
 
     // Post or update comment
     const octokit = github.getOctokit(token);
