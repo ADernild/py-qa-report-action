@@ -30075,7 +30075,7 @@ async function run() {
             ruffFile: ruffResults,
         });
         // Generate markdown report
-        const markdownReport = (0, report_generator_1.generateMarkdownReport)(parsedData);
+        const markdownReport = (0, report_generator_1.generateMarkdownReport)(parsedData, context);
         // Post or update comment
         const octokit = github.getOctokit(token);
         const commentId = await (0, github_api_1.postOrUpdateComment)(octokit, context, prNumber, markdownReport, updateComment);
@@ -30501,19 +30501,74 @@ async function parseRuff(filepath) {
 /***/ }),
 
 /***/ 5389:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.generateMarkdownReport = generateMarkdownReport;
-function generateMarkdownReport(data) {
+const core = __importStar(__nccwpck_require__(7484));
+function createGitHubFileLink(fileName, lineRange, context) {
+    const { owner, repo } = context.repo;
+    const sha = context.payload.pull_request?.head.sha || context.sha;
+    let cleanPath = fileName;
+    if (cleanPath.startsWith("/") || /^[A-Za-z]:/.test(cleanPath)) {
+        const pathParts = cleanPath.split("/");
+        const repoName = context.repo.repo;
+        const repoIndex = pathParts.indexOf(repoName);
+        if (repoIndex !== -1 && repoIndex < pathParts.length - 1) {
+            cleanPath = pathParts.slice(repoIndex + 1).join("/");
+        }
+        else {
+            core.warning(`Could not determine relative path for: ${fileName}`);
+            cleanPath = cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath;
+        }
+    }
+    else if (cleanPath.startsWith("./")) {
+        cleanPath = cleanPath.slice(2);
+    }
+    return `https://github.com/${owner}/${repo}/blob/${sha}/${cleanPath}#L${lineRange}`;
+}
+function generateMarkdownReport(data, context) {
     const sections = [];
     sections.push("# 🔍 Code Quality Report\n");
     sections.push(generateSummaryTable(data));
     sections.push(generatePytestSection(data.pytest));
-    sections.push(generateBanditSection(data.bandit));
-    sections.push(generateRuffSection(data.ruff));
+    sections.push(generateBanditSection(data.bandit, context));
+    sections.push(generateRuffSection(data.ruff, context));
     return sections.join("\n");
 }
 function generateSummaryTable(data) {
@@ -30588,7 +30643,7 @@ function formatLineRange(lineRange) {
     // Otherwise show all lines
     return lineRange.join(", ");
 }
-function formatBanditIssues(issues, severity, maxIssues = 3) {
+function formatBanditIssues(issues, severity, context, maxIssues = 3) {
     if (issues.length === 0)
         return [];
     const lines = [];
@@ -30598,7 +30653,8 @@ function formatBanditIssues(issues, severity, maxIssues = 3) {
     for (const issue of issuesToShow) {
         lines.push(`**${issue.testName}** (${issue.testId})`);
         const lineRange = formatLineRange(issue.lineRange);
-        lines.push(`- File: \`${issue.fileName}:${lineRange}\``);
+        const fileLink = createGitHubFileLink(issue.fileName, lineRange, context);
+        lines.push(`- File: [${issue.fileName}:${lineRange}](${fileLink})`);
         lines.push(`- Issue: ${issue.issueText}`);
         lines.push(`- Confidence: ${issue.confidence}`);
         if (issue.code) {
@@ -30613,7 +30669,7 @@ function formatBanditIssues(issues, severity, maxIssues = 3) {
     }
     return lines;
 }
-function generateBanditSection(bandit) {
+function generateBanditSection(bandit, context) {
     if (!bandit)
         return "";
     const lines = [];
@@ -30625,17 +30681,17 @@ function generateBanditSection(bandit) {
     // Show issues in priority order: HIGH, MEDIUM, LOW
     // Only show one severity level to keep report concise
     if (bandit.issuesBySeverity.HIGH.length > 0) {
-        lines.push(...formatBanditIssues(bandit.issuesBySeverity.HIGH, "HIGH"));
+        lines.push(...formatBanditIssues(bandit.issuesBySeverity.HIGH, "HIGH", context));
     }
     else if (bandit.issuesBySeverity.MEDIUM.length > 0) {
-        lines.push(...formatBanditIssues(bandit.issuesBySeverity.MEDIUM, "MEDIUM"));
+        lines.push(...formatBanditIssues(bandit.issuesBySeverity.MEDIUM, "MEDIUM", context));
     }
     else if (bandit.issuesBySeverity.LOW.length > 0) {
-        lines.push(...formatBanditIssues(bandit.issuesBySeverity.LOW, "LOW"));
+        lines.push(...formatBanditIssues(bandit.issuesBySeverity.LOW, "LOW", context));
     }
     return lines.join("\n");
 }
-function generateRuffSection(ruff) {
+function generateRuffSection(ruff, context) {
     if (!ruff)
         return "";
     const lines = [];
@@ -30660,7 +30716,8 @@ function generateRuffSection(ruff) {
                 const startRow = instance.location.row;
                 const endRow = instance.endLocation.row;
                 const lineRange = startRow === endRow ? `${startRow}` : `${startRow}-${endRow}`;
-                lines.push(`- \`${instance.fileName}:${lineRange}\``);
+                const fileLink = createGitHubFileLink(instance.fileName, lineRange, context);
+                lines.push(`- [${instance.fileName}:${lineRange}](${fileLink})`);
             }
             if (info.instances.length > maxInstances) {
                 lines.push(`- _...and ${info.instances.length - maxInstances} more instance${info.instances.length - maxInstances !== 1 ? "s" : ""}_`);
