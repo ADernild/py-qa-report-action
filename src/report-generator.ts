@@ -1,13 +1,44 @@
+import * as core from "@actions/core";
+import type { Context } from "@actions/github/lib/context";
 import type { BanditIssue, ParsedData } from "./types";
 
-export function generateMarkdownReport(data: ParsedData): string {
+function createGitHubFileLink(
+  fileName: string,
+  lineRange: string,
+  context: Context,
+): string {
+  const { owner, repo } = context.repo;
+  const sha = context.payload.pull_request?.head.sha || context.sha;
+
+  let cleanPath = fileName;
+  if (cleanPath.startsWith("/") || /^[A-Za-z]:/.test(cleanPath)) {
+    const pathParts = cleanPath.split("/");
+    const repoName = context.repo.repo;
+    const repoIndex = pathParts.indexOf(repoName);
+
+    if (repoIndex !== -1 && repoIndex < pathParts.length - 1) {
+      cleanPath = pathParts.slice(repoIndex + 1).join("/");
+    } else {
+      core.warning(`Could not determine relative path for: ${fileName}`);
+      cleanPath = cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath;
+    }
+  } else if (cleanPath.startsWith("./")) {
+    cleanPath = cleanPath.slice(2);
+  }
+  return `https://github.com/${owner}/${repo}/blob/${sha}/${cleanPath}#L${lineRange}`;
+}
+
+export function generateMarkdownReport(
+  data: ParsedData,
+  context: Context,
+): string {
   const sections: string[] = [];
 
   sections.push("# 🔍 Code Quality Report\n");
   sections.push(generateSummaryTable(data));
   sections.push(generatePytestSection(data.pytest));
-  sections.push(generateBanditSection(data.bandit));
-  sections.push(generateRuffSection(data.ruff));
+  sections.push(generateBanditSection(data.bandit, context));
+  sections.push(generateRuffSection(data.ruff, context));
 
   return sections.join("\n");
 }
@@ -105,6 +136,7 @@ function formatLineRange(lineRange: number[]): string {
 function formatBanditIssues(
   issues: BanditIssue[],
   severity: "HIGH" | "MEDIUM" | "LOW",
+  context: Context,
   maxIssues: number = 3,
 ): string[] {
   if (issues.length === 0) return [];
@@ -121,7 +153,8 @@ function formatBanditIssues(
   for (const issue of issuesToShow) {
     lines.push(`**${issue.testName}** (${issue.testId})`);
     const lineRange = formatLineRange(issue.lineRange);
-    lines.push(`- File: \`${issue.fileName}:${lineRange}\``);
+    const fileLink = createGitHubFileLink(issue.fileName, lineRange, context);
+    lines.push(`- File: [${issue.fileName}:${lineRange}](${fileLink})`);
     lines.push(`- Issue: ${issue.issueText}`);
     lines.push(`- Confidence: ${issue.confidence}`);
 
@@ -142,7 +175,10 @@ function formatBanditIssues(
   return lines;
 }
 
-function generateBanditSection(bandit: ParsedData["bandit"]): string {
+function generateBanditSection(
+  bandit: ParsedData["bandit"],
+  context: Context,
+): string {
   if (!bandit) return "";
 
   const lines: string[] = [];
@@ -156,17 +192,26 @@ function generateBanditSection(bandit: ParsedData["bandit"]): string {
   // Show issues in priority order: HIGH, MEDIUM, LOW
   // Only show one severity level to keep report concise
   if (bandit.issuesBySeverity.HIGH.length > 0) {
-    lines.push(...formatBanditIssues(bandit.issuesBySeverity.HIGH, "HIGH"));
+    lines.push(
+      ...formatBanditIssues(bandit.issuesBySeverity.HIGH, "HIGH", context),
+    );
   } else if (bandit.issuesBySeverity.MEDIUM.length > 0) {
-    lines.push(...formatBanditIssues(bandit.issuesBySeverity.MEDIUM, "MEDIUM"));
+    lines.push(
+      ...formatBanditIssues(bandit.issuesBySeverity.MEDIUM, "MEDIUM", context),
+    );
   } else if (bandit.issuesBySeverity.LOW.length > 0) {
-    lines.push(...formatBanditIssues(bandit.issuesBySeverity.LOW, "LOW"));
+    lines.push(
+      ...formatBanditIssues(bandit.issuesBySeverity.LOW, "LOW", context),
+    );
   }
 
   return lines.join("\n");
 }
 
-function generateRuffSection(ruff: ParsedData["ruff"]): string {
+function generateRuffSection(
+  ruff: ParsedData["ruff"],
+  context: Context,
+): string {
   if (!ruff) return "";
 
   const lines: string[] = [];
@@ -199,8 +244,12 @@ function generateRuffSection(ruff: ParsedData["ruff"]): string {
         const endRow = instance.endLocation.row;
         const lineRange =
           startRow === endRow ? `${startRow}` : `${startRow}-${endRow}`;
-
-        lines.push(`- \`${instance.fileName}:${lineRange}\``);
+        const fileLink = createGitHubFileLink(
+          instance.fileName,
+          lineRange,
+          context,
+        );
+        lines.push(`- [${instance.fileName}:${lineRange}](${fileLink})`);
       }
 
       if (info.instances.length > maxInstances) {
