@@ -30090,6 +30090,23 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.generateRuffSection = generateRuffSection;
 exports.getRuffStatus = getRuffStatus;
 const utils_1 = __nccwpck_require__(8541);
+function formatFixInfo(issue) {
+    if (!issue.fix)
+        return [];
+    const lines = [];
+    const applicabilityIcon = issue.fix.applicability === "safe" ? "✅" : "⚠️";
+    lines.push(`  - ${applicabilityIcon} **Fix available** (${issue.fix.applicability})`);
+    if (issue.fix.message) {
+        lines.push(`    - ${issue.fix.message}`);
+    }
+    if (issue.fix.edits && issue.fix.edits.length > 0) {
+        const edit = issue.fix.edits[0];
+        lines.push("    ```python");
+        lines.push(edit.content);
+        lines.push("    ```");
+    }
+    return lines;
+}
 function generateRuffSection(ruff, context) {
     if (!ruff)
         return "";
@@ -30097,17 +30114,22 @@ function generateRuffSection(ruff, context) {
     lines.push("## 🔧 Ruff Linting Results\n");
     lines.push(`- **Total Issues**: ${ruff.totalIssues}`);
     lines.push(`- **Files Affected**: ${ruff.filesAffected}\n`);
+    if (ruff.fixableCount > 0) {
+        lines.push(`- **Auto-fixable**: 🔧 ${ruff.fixableCount} ${(0, utils_1.pluralize)(ruff.fixableCount, "issue")}`);
+    }
+    lines.push("");
     if (Object.keys(ruff.issuesByCode).length > 0) {
         lines.push("### Issues by Type\n");
         const sortedIssues = Object.entries(ruff.issuesByCode)
             .sort((a, b) => b[1].count - a[1].count)
             .slice(0, 5);
         for (const [code, info] of sortedIssues) {
-            const pluralS = info.count !== 1 ? "s" : "";
-            const occurrences = `${info.count} occurrence${pluralS}`;
+            const occurrences = `${info.count} ${(0, utils_1.pluralize)(info.count, "occurrence")}`;
             const url = info.instances[0]?.url;
             const codeLink = url ? `[${code}](${url})` : `**${code}**`;
-            lines.push(`#### ${codeLink} (${occurrences})`);
+            const safeFixableInCode = info.instances.filter((i) => i.fix && i.fix.applicability === "safe").length;
+            const fixableNote = safeFixableInCode > 0 ? ` - ${safeFixableInCode} fixable` : "";
+            lines.push(`#### ${codeLink} (${occurrences}${fixableNote})`);
             lines.push(`${info.message}\n`);
             // Show up to 3 instances with file locations
             const maxInstances = 3;
@@ -30118,11 +30140,12 @@ function generateRuffSection(ruff, context) {
                 const lineRange = startRow === endRow ? `${startRow}` : `${startRow}-${endRow}`;
                 const fileLink = (0, utils_1.createGitHubFileLink)(instance.fileName, lineRange, context);
                 lines.push(`- ${fileLink}`);
+                const fixInfo = formatFixInfo(instance);
+                lines.push(...fixInfo);
             }
             if (info.instances.length > maxInstances) {
                 const remaining = info.instances.length - maxInstances;
-                const pluralS = remaining !== 1 ? "s" : "";
-                lines.push(`- _...and ${remaining} more instance${pluralS}_`);
+                lines.push(`- _...and ${remaining} more instance${(0, utils_1.pluralize)(remaining, "instance")}_`);
             }
             lines.push("");
         }
@@ -30133,8 +30156,7 @@ function getRuffStatus(ruff) {
     if (!ruff)
         return { details: "", status: "" };
     const status = ruff.totalIssues === 0 ? "✅ PASSED" : "⚠️ ISSUES FOUND";
-    const pluralS = ruff.totalIssues !== 1 ? "s" : "";
-    const details = `${ruff.totalIssues} linting issue${pluralS}`;
+    const details = `${ruff.totalIssues} linting issue${(0, utils_1.pluralize)(ruff.totalIssues, "issue")}`;
     return { details, status };
 }
 
@@ -30718,6 +30740,7 @@ const base_1 = __nccwpck_require__(7651);
 function parseRuffData(data) {
     const issuesByCode = {};
     const filesWithIssues = new Set();
+    let fixableCount = 0;
     for (const issue of data) {
         const code = issue.code || "UNKNOWN";
         if (!issuesByCode[code]) {
@@ -30729,21 +30752,26 @@ function parseRuffData(data) {
         }
         issuesByCode[code].count++;
         filesWithIssues.add(issue.filename || "");
+        if (issue.fix && issue.fix.applicability === "safe") {
+            fixableCount++;
+        }
         issuesByCode[code].instances.push({
             endLocation: issue.end_location || { column: 0, row: 0 },
             fileName: issue.filename || "",
             fix: issue.fix || null,
             location: issue.location || { column: 0, row: 0 },
             message: issue.message || "",
+            noqa_row: issue.noqa_row,
             url: issue.url || undefined,
         });
     }
     const summary = {
         filesAffected: filesWithIssues.size,
+        fixableCount,
         issuesByCode,
         totalIssues: data.length,
     };
-    core.info(`✅ Parsed ruff results: ${summary.totalIssues} issues found`);
+    core.info(`✅ Parsed ruff results: ${summary.totalIssues} issues found (${fixableCount} safe fixes available)`);
     return summary;
 }
 async function parseRuff(filepath) {
